@@ -4,6 +4,14 @@ const Schema = mongoose.Schema
 const UserSchema = new Schema({
   name: String,
   email: String,
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationCode:{
+    type: Schema.Types.ObjectId,
+    ref:'secretStr'
+    }, 
   password: String,
   avatar: String,
   date:{
