@@ -9,7 +9,7 @@ module.exports = async function sendVerificationEmail(email,verification,user_id
     subject: 'Email verification',
     text:`click this linkto confirm your adress: http://localhost:5000/api/users/verification/${verification}/${user_id}`,
     html: `<strong>
-      click this linkto confirm your adress:<a href= 'http://localhost:5000/api/users/verification/${verification}/${user_id}'> Confirm email </a>
+      click this link to confirm your adress:<a href= 'http://localhost:5000/api/users/verification/${verification}/${user_id}'> Confirm email </a>
      </strong>`,
   };
   await sendgrid.send(msg);

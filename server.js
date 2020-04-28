@@ -2,12 +2,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const passport = require('passport');
+const cors = require('cors')
 
 const users = require('./routes/api/users');
 const profile = require('./routes/api/profile');
 const post = require('./routes/api/post');
 
 const app = express();
+app.use(cors())
+app.options('*', cors());
 
 // Body parser middleware
 app.use(bodyParser.urlencoded({ extended: false }));

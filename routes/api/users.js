@@ -10,6 +10,7 @@ const passport = require("passport");
 // validate inputs
 const validateRegisterInput = require("../../validation/register");
 const validateLoginInput = require("../../validation/login");
+const validatePasswordReset = require("../../validation/resetPassword");
 //sendgrid email verification
 const sendgrid = require("../../config/sendgrid");
 const randomstring = require("randomstring");
@@ -55,12 +56,12 @@ router.post("/register", (req, res) => {
                 res.json(user);
                 sendgrid(user.email, sec.str, user.id);
               })
-              .catch(e => console.log("err regist new user " + e));
+              .catch(e => res.status(400).json("err regist new user " + e));
           });
         });
       }
     })
-    .catch(e => console.log(`cant findOne email err:${e}`));
+    .catch(e => res.status(400).json(`cant findOne email err:${e}`));
 });
 
 //api/user/verification/:secStr/:Id
@@ -77,7 +78,7 @@ router.get("/verification/:secStr/:user_id", async (req, res) => {
         userId: req.params.user_id
       };
       sendgrid(email, newStr.str, userId);
-      return res.json({
+      return res.status(400).json({
         msg: "token expired check your email we sent new one"
       });
     } else {
@@ -86,28 +87,17 @@ router.get("/verification/:secStr/:user_id", async (req, res) => {
         reqStr: req.params.secStr
       };
       if (randStr.localeCompare(reqStr) === 0) {
-        (user.isVerified = true), user.save();
-        res.send("email verified");
+        user.isVerified = true
+        user.save();
+        res.json({message:"email verified"});
       }
     }
   } catch (error) {
-    res.json(error);
+    res.status(400).json(error);
   }
 });
 
-/*router.post('/verification/:id' ,(req,res)=>{
-   User.findById(req.params.id)
-    .then(user=>{
-      const  {getCode,secretStr } ={getCode:req.body.getcode, secretStr: user.verificationCode} 
-      if(secretStr.localeCompare(getCode) === 0){
-        user.isVerified = true
-        user.save()
-        res.send('email verified')
-      }
-    })
-    .catch(e=> res.json(e))
 
-})*/
 
 //POST reset password
 // api/user/reset
@@ -115,7 +105,7 @@ router.post("/reset", async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
   try {
     if (!user) {
-      return res.json({ email: "can not find user with this email" });
+      return res.status(400).json({ email: "can not find user with this email" });
     } else {
       let { email, userId } = { email: user.email, userId: user.id };
       let secStr = new secretStr({ str: randomstring.generate() });
@@ -125,45 +115,43 @@ router.post("/reset", async (req, res) => {
       res.json({ msg: `an email is sent to ${user.email}` });
     }
   } catch (error) {
-    res.json(error);
+    res.status(400).json(error);
   }
 });
 //PUT update password
 //api/user/reset/:secStr/:id
 router.put("/reset/:secStr/:id", async (req, res) => {
+  let{errors,isValid} = validatePasswordReset(req.body);
+  if(!isValid){
+    return res.status(400).json(errors)
+  }
   try {
     let randString = await secretStr.findOne({ str: req.params.secStr });
     let user = await User.findById(req.params.id);
-    let { newPassword, confirm } = {
-      newPassword: req.body.password,
-      confirm: req.body.password2
-    };
+    let newPassword = req.body.password;
 
     if (!randString) {
       let newStr = await new secretStr({ str: randomstring.generate() });
       newStr.save();
       resetPssaword(user.email, newStr.str, user.id);
-      res.json({
+      res.status(400).json({
         messge: "token expired check out your email we sent new one"
       });
-    } else if (newPassword.localeCompare(confirm) !== 0) {
-      return res.json({ message: "confirm password and password dont match" });
     } else {
       bcrypt.genSalt(5, (err, salt) => {
         if (err) throw err;
         bcrypt.hash(newPassword, salt, async (err, hash) => {
           if (err) throw err;
           newPassword = hash;
-          const updtprofile = await User.findByIdAndUpdate(
+          await User.findByIdAndUpdate(
             req.params.id,
             { $set: { password: newPassword } },
             { new: true }
           );
           try {
-            console.log(updtprofile);
             res.json({ message: "please login with new password" });
           } catch (error) {
-            res.json(error);
+            res.status(400).json(error);
           }
         });
       });
@@ -194,7 +182,7 @@ router.post("/login", (req, res) => {
       }
       if (user.isVerified === false) {
         errors.isVerified = "please verify your email to login ";
-        return res.json(errors);
+        return res.status(400).json(errors);
       }
       bcrypt
         .compare(password, user.password)

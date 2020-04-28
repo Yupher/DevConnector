@@ -5,7 +5,7 @@ const secretSchema = new schema({
   date: {
     type: Date,
     default: Date.now,
-    expires: 30
+    expires: 3600
   },
   str: String
 });
