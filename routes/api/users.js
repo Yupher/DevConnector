@@ -21,6 +21,7 @@ const resetPssaword = require("../../config/passwordreset");
 
 router.post("/register", (req, res) => {
   const { errors, isValid } = validateRegisterInput(req.body);
+  
   // check validation input
   if (!isValid) {
     return res.status(400).json(errors);
@@ -54,7 +55,7 @@ router.post("/register", (req, res) => {
               .save()
               .then(user => {
                 res.json(user);
-                sendgrid(user.email, sec.str, user.id);
+                sendgrid(user.email, req.protocol, req.get('host'), sec.str, user.id);
               })
               .catch(e => res.status(400).json("err regist new user " + e));
           });
